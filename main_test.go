@@ -123,11 +123,7 @@ func TestRandomStart(t *testing.T) {
 
 func TestMain(t *testing.T) {
 
-	matrix := make([][]int, 3)
-	for i := range matrix {
-		matrix[i] = make([]int, 3)
-	}
-
+	matrix := newEmpty3x3()
 	randomStart(matrix)
 	fmt.Println("Random Start:")
 	printMatrix(matrix)

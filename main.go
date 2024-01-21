@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"time"
 )
@@ -69,7 +70,7 @@ func randomStart(matrix [][]int) {
 	}
 }
 
-func new3x3() [][]int {
+func newEmpty3x3() [][]int {
 
 	matrix := make([][]int, 3)
 	for i := range matrix {
@@ -80,40 +81,69 @@ func new3x3() [][]int {
 }
 
 func solveUsingGraph(matrix [][]int) int {
-	newMatrix := new3x3()
+	newMatrix := newEmpty3x3()
 	copy(newMatrix, matrix)
 
-	visited := make(map[string]bool)
+	// visited := make(map[string]bool)
 	var finalSteps int
 	var finalMatrix [][]int
-	queue := make([][]int, 1) // next position to visit
+	queue := make([]int, 0)
+	start := 0
 
+	for i := 0; i < 9; i++ {
+		newRow := i / 3
+		newCol := i % 3
+		start += newMatrix[newRow][newCol]
+	}
+	// capacity equal to 1 shifted m * n (3 x 3)
+	dist := make([]int, 1<<9)
+	dist[0] = math.MaxInt
+	for i := 1; i < len(dist); i *= 2 {
+		copy(dist[i:], dist[:i])
+	}
+
+	dist[start] = 0
+
+	queue = append(queue, start)
 	for len(queue) > 0 {
+		finalSteps++
 		// initialize steps to 1 and our current state to the original matrix
-		currentState := State{Matrix: newMatrix, Steps: 1}
+		// currentState := State{Matrix: newMatrix, Steps: 1}
+		currentNode := queue[0]
+		queue = queue[1:]
 
-		if isMatrixZero(currentState.Matrix) {
-			fmt.Println("\nOptimal Solution (Steps:", currentState.Steps, "):")
-			printMatrix(currentState.Matrix)
-			return currentState.Steps + 1
+		d := dist[currentNode]
+		if currentNode == 0 {
+			return d
 		}
 
 		for i := 0; i < 9; i++ {
-			hash := fmt.Sprintf("%v", []int{i, i % 3})
-			if x := pressNumber(currentState.Matrix, i, i%3); x == -1 {
-				if !visited[hash] {
-					visited[hash] = true
-					continue
-				}
-			} else {
-				currentState.Steps++
-				queue = append(queue, []int{i, i % 3})
+			row := i / 3
+			col := i % 3
+
+			next := currentNode
+			next ^= 1 << i
+			if col > 0 {
+				next ^= 1 << (i - 1)
 			}
 
-		}
+			if col < 2 { // n - 1 :(n = 3)
+				next ^= 1 << (i + 1)
+			}
 
-		finalSteps = currentState.Steps + 1
-		finalMatrix = currentState.Matrix
+			if row > 0 {
+				next ^= 1 << (i - 3)
+			}
+
+			if row < 2 {
+				next ^= 1 << (i + 3)
+			}
+
+			if d+1 < dist[next] {
+				dist[next] = d + 1
+				queue = append(queue, next)
+			}
+		}
 	}
 	printMatrix(finalMatrix)
 	return finalSteps
