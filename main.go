@@ -11,8 +11,22 @@ type State struct {
 	Steps  int
 }
 
-func pressNumber(matrix [][]int, row, col int) {
+func pressNumber(matrix [][]int, row, col int) int {
 	adjacent := [][]int{{0, 1}, {1, 0}, {0, -1}, {-1, 0}}
+
+	if matrix[row][col] == 0 {
+		return -1
+	}
+
+	for _, pos := range adjacent {
+		newRow, newCol := row+pos[0], col+pos[1]
+
+		if newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3 {
+			if matrix[newRow][newCol] == 0 {
+				return -1
+			}
+		}
+	}
 
 	for _, pos := range adjacent {
 		// apply the transform matrix
@@ -25,6 +39,7 @@ func pressNumber(matrix [][]int, row, col int) {
 
 	// now update the button number itself
 	matrix[row][col] = (matrix[row][col] + 1) % 3
+	return 0
 }
 
 func isMatrixZero(matrix [][]int) bool {
@@ -54,16 +69,28 @@ func randomStart(matrix [][]int) {
 	}
 }
 
-func solveUsingGraph(matrix [][]int) int {
+func new3x3() [][]int {
 
-	queue := []State{{Matrix: matrix, Steps: 0}}
+	matrix := make([][]int, 3)
+	for i := range matrix {
+		matrix[i] = make([]int, 3)
+	}
+
+	return matrix
+}
+
+func solveUsingGraph(matrix [][]int) int {
+	newMatrix := new3x3()
+	copy(newMatrix, matrix)
+
 	visited := make(map[string]bool)
 	var finalSteps int
 	var finalMatrix [][]int
+	queue := make([][]int, 1) // next position to visit
 
 	for len(queue) > 0 {
-		currentState := queue[0]
-		queue = queue[1:]
+		// initialize steps to 1 and our current state to the original matrix
+		currentState := State{Matrix: newMatrix, Steps: 1}
 
 		if isMatrixZero(currentState.Matrix) {
 			fmt.Println("\nOptimal Solution (Steps:", currentState.Steps, "):")
@@ -71,20 +98,18 @@ func solveUsingGraph(matrix [][]int) int {
 			return currentState.Steps + 1
 		}
 
-		// Generate next states by pressing numbers
-		for i := 0; i < 3; i++ {
-			for j := 0; j < 3; j++ {
-				nextState := currentState
-				pressNumber(nextState.Matrix, i, j)
-
-				// Check if the next state has been visited
-				hash := fmt.Sprintf("%v", nextState.Matrix)
+		for i := 0; i < 9; i++ {
+			hash := fmt.Sprintf("%v", []int{i, i % 3})
+			if x := pressNumber(currentState.Matrix, i, i%3); x == -1 {
 				if !visited[hash] {
 					visited[hash] = true
-					nextState.Steps++
-					queue = append(queue, nextState)
+					continue
 				}
+			} else {
+				currentState.Steps++
+				queue = append(queue, []int{i, i % 3})
 			}
+
 		}
 
 		finalSteps = currentState.Steps + 1
