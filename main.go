@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"os"
+	"os/signal"
 	"time"
 )
 
@@ -112,17 +114,43 @@ func solveUsingGraph(matrix [][]int) int {
 
 func main() {
 
-	matrix := make([][]int, 3)
-	for i := range matrix {
-		matrix[i] = make([]int, 3)
-	}
+	// matrix := make([][]int, 3)
+	// for i := range matrix {
+	// 	matrix[i] = make([]int, 3)
+	// }
+	matrix := newEmpty3x3()
 
 	randomStart(matrix)
 	fmt.Println("Random Start:")
 	printMatrix(matrix)
 
 	var keepProgramRunning bool = true
+	var stepstaken int
+	// history := []State{}
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for sig := range c {
+			sig.String()
+			fmt.Println("steps taken: ")
+			fmt.Println(stepstaken)
+			// var wantHistory string
+			// fmt.Println("Would you like the move history? 'yes' to confirm")
+			// fmt.Scan(&wantHistory)
+			// if wantHistory == "yes" {
+			// 	for _, state := range history {
+			// 		printMatrix(state.Matrix)
+			// 	}
+			// }
+			os.Exit(1)
+		}
+	}()
+
+	visited := map[string]struct{}{}
+
 	for keepProgramRunning {
+
+		stepstaken++
 
 		// stepstaken := solveUsingGraph(matrix)
 		fmt.Println("enter new row coordinate:")
@@ -130,10 +158,27 @@ func main() {
 		fmt.Scanln(&row)
 		fmt.Println("enter new col coordinate:")
 		fmt.Scanln(&col)
-		if x := pressNumber(matrix, row, col); x == -1 {
+		// keep a record of the changes for review
+		// history = append(history, State{Matrix: matrix})
+
+		newMatrix := newEmpty3x3()
+		copy(newMatrix, matrix)
+		if x := pressNumber(newMatrix, row, col); x == -1 {
 			fmt.Println("nothing pressed")
 		}
-		fmt.Println("New Matrix:")
+
+		hash := fmt.Sprintf("%v", newMatrix)
+		if _, ok := visited[hash]; !ok {
+			fmt.Println("this state has not been visited before")
+			visited[hash] = struct{}{}
+			matrix = newMatrix
+			fmt.Println("New Matrix:")
+		} else {
+			stepstaken--
+			fmt.Println("this state has been visited before")
+			fmt.Println("pick another coordinate set")
+		}
+
 		printMatrix(matrix)
 		// fmt.Println(stepstaken)
 	}
